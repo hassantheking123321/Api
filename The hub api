@@ -1,0 +1,162 @@
+getgenv().th = {}
+
+local textChatService = game:GetService("TextChatService")
+
+-- Dynamically fetch services
+th.service = setmetatable({}, {
+    __index = function(_, service)
+        local success, result = pcall(function()
+            return game:GetService(service)
+        end) 
+        return success and result or nil
+    end
+})
+
+-- Connect a signal to an event
+function th:connect(signal, event)
+    return signal:Connect(event)
+end
+
+-- Generate a random alphanumeric string of a specified length
+function th:randomstring(length)
+    length = length or 10  -- default length is 10 if not specified
+    local chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    local result = {}
+    for i=1,length do
+        local index = math.random(1, #chars)
+        table.insert(result, chars:sub(index, index))
+    end
+    return table.concat(result)
+end
+
+-- Get asset based on ID
+function th:getasset(id)
+    local value = isfile(id) and getcustomasset(id) or "rbxassetid://" .. id
+    return value
+end
+
+-- Check chat version
+function th:chatcheck()
+    return textChatService.ChatVersion == Enum.ChatVersion.TextChatService
+end
+
+-- Send a chat message
+function th:chat(msg)
+    if self:chatcheck() then
+        textChatService.TextChannels.RBXGeneral:SendAsync(msg)
+    else
+        self.service.ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(msg, "All")
+    end
+end
+
+-- Create a new instance with given properties
+function th:new(instance, property)
+    local thing = Instance.new(instance)
+    for key, value in pairs(property) do
+        thing[key] = value
+    end
+    return thing
+end
+
+-- Set FPS cap if possible
+function th:fpscap(number)
+    if setfpscap then
+        setfpscap(number)
+    end
+end
+
+-- Get a table of all parts within a specified model
+function th:getAllParts(model)
+    local parts = {}
+    for _, child in pairs(model:GetDescendants()) do
+        if child:IsA("BasePart") then
+            table.insert(parts, child)
+        end
+    end
+    return parts
+end
+
+-- Broadcast a message to all players
+function th:broadcast(message)
+    for _, player in pairs(self.service.Players:GetPlayers()) do
+        local ui = self:new("Message", {
+            Text = message,
+            Parent = player:FindFirstChild("PlayerGui")
+        })
+        wait(5)  -- Wait for 5 seconds
+        ui:Destroy()
+    end
+end
+
+-- Clone an object
+function th:clone(object)
+    return object:Clone()
+end
+
+-- Set an attribute for an object
+function th:setAttribute(object, attributeName, value)
+    if object:SetAttribute(attributeName, value) then
+        return true
+    end
+    return false
+end
+
+-- Retrieve the attribute of an object
+function th:getAttribute(object, attributeName)
+    return object:GetAttribute(attributeName)
+end
+
+-- Fade out an audio source
+function th:fadeOutAudio(audioSource, time)
+    time = time or 1  -- default to 1 second if no time provided
+    for i = 1, time*10 do
+        audioSource.Volume = audioSource.Volume - (audioSource.Volume / (time*10))
+        wait(0.1)
+    end
+    audioSource:Stop()
+end
+
+-- Check if a player has a specific badge
+function th:hasBadge(player, badgeId)
+    local success, hasBadge = pcall(function()
+        return game:GetService("BadgeService"):UserHasBadgeAsync(player.UserId, badgeId)
+    end)
+    return success and hasBadge
+end
+
+-- Get the distance between two parts
+function th:getDistance(part1, part2)
+    return (part1.Position - part2.Position).Magnitude
+end
+
+-- Get a table of all teams and their members
+function th:getTeamsAndMembers()
+    local teamsInfo = {}
+    local teams = self.service.Teams:GetTeams()
+    for _, team in pairs(teams) do
+        local members = {}
+        for _, player in pairs(self.service.Players:GetPlayers()) do
+            if player.Team == team then
+                table.insert(members, player.Name)
+            end
+        end
+        teamsInfo[team.Name] = members
+    end
+    return teamsInfo
+end
+
+-- Play a sound
+function th:playsound(soundId)
+    local sound = self:new("Sound", { SoundId = soundId })
+    sound.Parent = game.Workspace
+    sound:Play()
+    return sound
+end
+
+-- Stop a sound
+function th:stopsound(sound)
+    sound:Stop()
+    sound:Destroy()
+end
+
+return th
